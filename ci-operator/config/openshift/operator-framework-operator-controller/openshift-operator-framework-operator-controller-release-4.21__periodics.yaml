@@ -3,10 +3,22 @@ base_images:
     name: builder
     namespace: ocp
     tag: rhel-9-golang-1.24-openshift-4.21
+  dev-scripts:
+    name: test
+    namespace: ocp-kni
+    tag: dev-scripts
+  hypershift-operator:
+    name: hypershift-operator
+    namespace: hypershift
+    tag: latest
   ocp_4.21_base-rhel9:
     name: "4.21"
     namespace: ocp
     tag: base-rhel9
+  rosa-aws-cli:
+    name: rosa-aws-cli
+    namespace: ci
+    tag: latest
   tools:
     name: "4.21"
     namespace: ocp
@@ -15,14 +27,36 @@ base_images:
     name: "4.21"
     namespace: ocp
     tag: upi-installer
+  libvirt-installer:
+    name: "4.21"
+    namespace: ocp
+    tag: libvirt-installer
 build_root:
   image_stream_tag:
     name: builder
     namespace: ocp
     tag: rhel-9-golang-1.24-openshift-4.21
 releases:
+  arm64-latest:
+    candidate:
+      architecture: arm64
+      product: ocp
+      stream: nightly
+      version: "4.21"
+  initial:
+    candidate:
+      product: ocp
+      relative: 1
+      stream: nightly
+      version: "4.21"
   latest:
     candidate:
+      product: ocp
+      stream: nightly
+      version: "4.21"
+  ppc64le-latest:
+    candidate:
+      architecture: ppc64le
       product: ocp
       stream: nightly
       version: "4.21"
@@ -115,6 +149,356 @@ tests:
     - chain: cucushift-installer-rehearse-gcp-ipi-disconnected-provision
     test:
     - ref: openshift-extended-olm-test-disconnected
+- as: e2e-hypershift-aws-ovn-extended-f1
+  cron: 0 2 * * *
+  steps:
+    cluster_profile: hypershift
+    env:
+      PUBLIC_ONLY: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: hypershift-aws-conformance
+- as: e2e-metal-ipi-ovn-bm-extended-f7
+  capabilities:
+  - intranet
+  cron: 0 2 1-31/7 * *
+  steps:
+    cluster_profile: equinix-ocp-metal
+    env:
+      CLUSTERTYPE: baremetal
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: baremetalds-e2e-ovn-ipv4
+- as: e2e-rosa-sts-ovn-extended-f1
+  cron: '@daily'
+  steps:
+    cluster_profile: aws-perfscale-qe
+    env:
+      CHANNEL_GROUP: nightly
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: rosa-aws-sts-conformance
+- as: e2e-aws-ovn-proxy-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: aws-5
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-aws-proxy
+- as: e2e-azure-ovn-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: azure4
+    env:
+      FAIL_ON_CORE_DUMP: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-azure-ovn
+- as: e2e-azure-ovn-techpreview-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: azure4
+    env:
+      FEATURE_SET: TechPreviewNoUpgrade
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-azure-ovn
+- as: e2e-gcp-ovn-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: gcp-openshift-gce-devel-ci-2
+    env:
+      FAIL_ON_CORE_DUMP: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-gcp-ovn
+- as: e2e-gcp-ovn-techpreview-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: gcp-3
+    env:
+      FEATURE_SET: TechPreviewNoUpgrade
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-gcp-ovn
+- as: e2e-agent-compact-fips-extended-f12
+  capabilities:
+  - intranet
+  cron: 0 */12 * * *
+  steps:
+    cluster_profile: equinix-ocp-metal
+    env:
+      DEVSCRIPTS_CONFIG: |
+        AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
+        FIPS_MODE=true
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: agent-e2e-generic-conformance
+- as: e2e-agent-sno-ipv6-extended-f12
+  capabilities:
+  - intranet
+  cron: 0 */12 * * *
+  steps:
+    cluster_profile: equinix-ocp-metal
+    env:
+      DEVSCRIPTS_CONFIG: |
+        AGENT_E2E_TEST_SCENARIO=SNO_IPV6
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: agent-e2e-generic-conformance
+- as: e2e-aws-ovn-fips-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: aws-2
+    env:
+      FIPS_ENABLED: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    pre:
+    - chain: ipi-aws-pre
+    - ref: fips-check
+    workflow: openshift-e2e-aws
+- as: e2e-aws-ovn-single-node-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: aws-3
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-aws-single-node
+- as: e2e-aws-ovn-upi-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: aws-2
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-aws-upi
+- as: e2e-azure-csi-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: azure4
+    env:
+      ENABLE_LONG_CSI_CERTIFICATION_TESTS: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-azure-csi
+- as: e2e-azurestack-ovn-upi-extended-f7
+  cluster: build01
+  interval: 168h
+  steps:
+    cluster_profile: azurestack-dev
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-azurestack-upi
+- as: e2e-external-aws-ccm-extended-f7
+  cron: '@weekly'
+  steps:
+    cluster_profile: aws-2
+    env:
+      PLATFORM_EXTERNAL_CCM_ENABLED: "yes"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: openshift-e2e-external-aws
+- as: e2e-gcp-ovn-csi-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: gcp-openshift-gce-devel-ci-2
+    env:
+      ENABLE_LONG_CSI_CERTIFICATION_TESTS: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-gcp-csi
+- as: e2e-gcp-ovn-fips-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: gcp-3
+    env:
+      FIPS_ENABLED: "true"
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    pre:
+    - chain: ipi-gcp-pre
+    - ref: fips-check
+    workflow: openshift-e2e-gcp
+- as: e2e-gcp-ovn-runc-techpreview-extended-f1
+  cron: '@daily'
+  steps:
+    cluster_profile: gcp-3
+    env:
+      FEATURE_SET: TechPreviewNoUpgrade
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-gcp-runc
+- as: e2e-gcp-ovn-upi-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: gcp
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-gcp-upi
+- as: e2e-ibmcloud-ovn-extended-f7
+  interval: 168h
+  steps:
+    cluster_profile: ibmcloud
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-ibmcloud-ovn
+- as: e2e-vsphere-ovn-extended-f2
+  cron: 14 9 * * 3
+  steps:
+    cluster_profile: vsphere-elastic
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-vsphere-ovn
+- as: e2e-vsphere-ovn-techpreview-extended-f2
+  cron: 20 5 * * 6
+  steps:
+    cluster_profile: vsphere-elastic
+    env:
+      FEATURE_SET: TechPreviewNoUpgrade
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-vsphere
+- as: e2e-vsphere-ovn-upi-extended-f5
+  cron: 34 7 * * 1
+  steps:
+    cluster_profile: vsphere-elastic
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-vsphere-upi
+- as: e2e-aws-ovn-arm64-extended-f3
+  interval: 72h
+  steps:
+    cluster_profile: aws-3
+    dependencies:
+      OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE: release:arm64-latest
+    env:
+      OCP_ARCH: arm64
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    observers:
+      enable:
+      - observers-resource-watch
+    workflow: openshift-e2e-aws-ovn
+- as: e2e-metal-ovn-two-node-fencing-dualstack-tp-extended-f1
+  capabilities:
+  - intranet
+  cron: '@daily'
+  steps:
+    cluster_profile: equinix-edge-enablement
+    env:
+      DEVSCRIPTS_CONFIG: |
+        IP_STACK=v4v6
+        MASTER_DISK=100
+        MASTER_MEMORY=32768
+        NUM_MASTERS=2
+        NUM_WORKERS=0
+        FEATURE_SET="TechPreviewNoUpgrade"
+        BMC_DRIVER=redfish
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: baremetalds-two-node-fencing-techpreview
+- as: e2e-metal-ovn-two-node-arbiter-extended-f1
+  capabilities:
+  - intranet
+  cron: '@daily'
+  steps:
+    cluster_profile: equinix-edge-enablement
+    env:
+      TEST_ARGS: --monitor=watch-namespaces
+      TEST_SUITE: olmv1/extended/candidate/fast
+    workflow: baremetalds-two-node-arbiter
+- as: e2e-compact-ovn-remote-libvirt-s390x-extended-f14
+  capabilities:
+  - sshd-bastion
+  cron: 0 5 * * 6
+  steps:
+    cluster_profile: libvirt-s390x-2
+    env:
+      ARCH: s390x
+      BRANCH: "4.21"
+      COMPUTE_COUNT: "0"
+      TEST_SUITE: olmv1/extended/candidate/fast
+      TEST_TYPE: suite
+      VOLUME_CAPACITY: 64GB
+    workflow: openshift-e2e-libvirt-upi
+- as: e2e-ovn-remote-libvirt-ppc64le-extended-f14
+  cluster: build10
+  cron: 0 3 * * 1,3
+  steps:
+    cluster_profile: libvirt-ppc64le-s2s
+    dependencies:
+      OPENSHIFT_INSTALL_TARGET: release:ppc64le-latest
+    env:
+      ARCH: ppc64le
+      BRANCH: "4.21"
+      DOMAIN_MEMORY: "34816"
+      ETCD_DISK_SPEED: slow
+      TEST_SUITE: olmv1/extended/candidate/fast
+      TEST_TYPE: suite
+      USE_RAMFS: "true"
+    workflow: openshift-e2e-libvirt-upi
 zz_generated_metadata:
   branch: release-4.21
   org: openshift
