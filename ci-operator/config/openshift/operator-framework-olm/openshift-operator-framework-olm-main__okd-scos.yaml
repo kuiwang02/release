@@ -31,9 +31,6 @@ images:
   dockerfile_path: operator-lifecycle-manager.Dockerfile
   from: origin_scos-4.22_base-stream9
   inputs:
-    ocp_builder_rhel-9-golang-1.24-openshift-4.22:
-      as:
-      - builder
     ocp_builder_rhel-9-golang-1.25-openshift-4.22:
       as:
       - registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.25-openshift-4.22
@@ -44,9 +41,6 @@ images:
   dockerfile_path: operator-registry.Dockerfile
   from: origin_scos-4.22_base-stream9
   inputs:
-    ocp_builder_rhel-9-golang-1.24-openshift-4.22:
-      as:
-      - builder
     ocp_builder_rhel-9-golang-1.25-openshift-4.22:
       as:
       - registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.25-openshift-4.22
@@ -57,15 +51,9 @@ images:
   dockerfile_path: operator-framework-tools.Dockerfile
   from: origin_scos-4.22_base-stream9
   inputs:
-    ocp_builder_rhel-8-golang-1.24-openshift-4.22:
-      as:
-      - builder-rhel8
     ocp_builder_rhel-8-golang-1.25-openshift-4.22:
       as:
       - registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.25-openshift-4.22
-    ocp_builder_rhel-9-golang-1.24-openshift-4.22:
-      as:
-      - builder
     ocp_builder_rhel-9-golang-1.25-openshift-4.22:
       as:
       - registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.25-openshift-4.22
